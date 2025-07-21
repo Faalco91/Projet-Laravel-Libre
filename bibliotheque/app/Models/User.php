@@ -45,4 +45,28 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Relation avec les commentaires
+     */
+    public function commentaires()
+    {
+        return $this->hasMany(Commentaire::class);
+    }
+
+    /**
+     * Relation avec les favoris
+     */
+    public function favoris()
+    {
+        return $this->hasMany(Favori::class);
+    }
+
+    /**
+     * Relation many-to-many avec les livres favoris
+     */
+    public function livresFavoris()
+    {
+        return $this->belongsToMany(Book::class, 'favoris', 'user_id', 'livre_id');
+    }
 }

@@ -17,6 +17,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::get('/favoris', [FavoriController::class, 'index'])->name('favoris.index');
+Route::post('/favoris', [FavoriController::class, 'store'])->name('favoris.store');
+Route::delete('/favoris/{livre_id}', [FavoriController::class, 'destroy'])->name('favoris.destroy');
+Route::post('/favoris/toggle', [FavoriController::class, 'toggle'])->name('favoris.toggle');
+
+
 Route::get('/test-route', function() {
     return 'Test OK';
 });
