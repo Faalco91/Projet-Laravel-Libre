@@ -15,7 +15,17 @@ class Book extends Model
         'categorie',
         'annee',
         'description',
+        'user_id', // ← AJOUT : Il faut ajouter user_id ici
     ];
+
+    /**
+     * Relation avec l'utilisateur propriétaire du livre
+     * ← AJOUT : Cette relation est nécessaire
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     /**
      * Relation avec les commentaires

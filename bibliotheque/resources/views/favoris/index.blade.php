@@ -1,58 +1,227 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800">Mes Favoris</h2>
+        <h2 class="font-semibold text-xl text-gray-800">📚 Gestion des Livres</h2>
     </x-slot>
 
     <div class="py-8">
-        <div class="max-w-6xl mx-auto px-4">
+        <div class="max-w-7xl mx-auto px-4">
             @if (session('success'))
                 <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6">
                     {{ session('success') }}
                 </div>
             @endif
 
-            <div class="mb-6">
-                <a href="{{ route('dashboard') }}" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
-                    ← Retour au catalogue
-                </a>
-            </div>
-
-            <h3 class="text-lg font-medium mb-4">Mes livres favoris ({{ $favoris->count() }})</h3>
-            
-            @if($favoris->count() > 0)
-                @foreach($favoris as $favori)
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 shadow-sm">
-                        <div class="flex items-start justify-between">
-                            <div class="flex-1">
-                                <h4 class="font-bold text-lg mb-2">{{ $favori->livre->titre }}</h4>
-                                <p class="text-gray-600 mb-1"><strong>Auteur:</strong> {{ $favori->livre->auteur }}</p>
-                                <p class="text-gray-600 mb-1"><strong>Catégorie:</strong> {{ $favori->livre->categorie }} ({{ $favori->livre->annee }})</p>
-                                <p class="text-gray-700 mb-2">{{ $favori->livre->description }}</p>
-                                <p class="text-xs text-gray-500 mb-3">Ajouté le {{ $favori->created_at->format('d/m/Y') }}</p>
-                            </div>
-                            <span class="text-yellow-500 text-xl ml-4">⭐</span>
-                        </div>
-                        
-                        <form method="POST" action="{{ route('favoris.destroy', $favori->livre->id) }}" class="inline">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" 
-                                    class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
-                                    onclick="return confirm('Retirer ce livre de vos favoris ?')">
-                                🗑️ Retirer des favoris
-                            </button>
-                        </form>
-                    </div>
-                @endforeach
-            @else
-                <div class="bg-gray-100 border rounded-lg p-8 text-center">
-                    <div class="text-4xl text-gray-400 mb-4">📚</div>
-                    <p class="text-gray-600 mb-4">Aucun livre en favori.</p>
-                    <a href="{{ route('dashboard') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                        Parcourir le catalogue
-                    </a>
+            @if ($errors->any())
+                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
                 </div>
             @endif
+
+            <!-- Header avec bouton d'ajout -->
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-medium">Tous les livres ({{ $books->count() }})</h3>
+                <button type="button"
+                        onclick="document.getElementById('addBookModal').classList.remove('hidden')"
+                        style="background-color: #10b981; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; display: inline-block;">
+                    ➕ Ajouter un livre
+                </button>
+            </div>
+
+            <!-- Barre de recherche -->
+            <form method="GET" action="{{ route('books.index') }}" class="mb-6">
+                <input type="text"
+                       name="search"
+                       placeholder="🔍 Rechercher un livre..."
+                       value="{{ request('search') }}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </form>
+
+            <!-- Liste des livres -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Titre</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Auteur</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catégorie</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Année</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                    @forelse($books as $book)
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ $book->titre }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-500">{{ $book->auteur }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        {{ $book->categorie ?? 'Non définie' }}
+                                    </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ $book->annee ?? 'N/A' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                @can('update', $book)
+                                    <button onclick="openEditModal({{ $book->id }})"
+                                            style="background-color: #f59e0b; color: white; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px; margin-right: 4px;">
+                                        ✏️ Modifier
+                                    </button>
+                                @endcan
+                                @can('delete', $book)
+                                    <form method="POST" action="{{ route('books.destroy', $book) }}" class="inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                                style="background-color: #ef4444; color: white; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px;"
+                                                onclick="return confirm('Supprimer ce livre ?')">
+                                            🗑️ Supprimer
+                                        </button>
+                                    </form>
+                                @endcan
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                                📭 Aucun livre trouvé.
+                            </td>
+                        </tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
+
+    <!-- Modal Ajout -->
+    <div id="addBookModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">➕ Ajouter un nouveau livre</h3>
+                <form action="{{ route('books.store') }}" method="POST">
+                    @csrf
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Titre *</label>
+                        <input type="text" name="titre" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Auteur *</label>
+                        <input type="text" name="auteur" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Catégorie</label>
+                        <select name="categorie" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                            <option value="">-- Choisir --</option>
+                            <option value="Roman">Roman</option>
+                            <option value="Science-fiction">Science-fiction</option>
+                            <option value="Fantastique">Fantastique</option>
+                            <option value="Policier">Policier</option>
+                            <option value="Thriller">Thriller</option>
+                            <option value="Biographie">Biographie</option>
+                            <option value="Histoire">Histoire</option>
+                            <option value="Philosophie">Philosophie</option>
+                            <option value="Poésie">Poésie</option>
+                            <option value="Théâtre">Théâtre</option>
+                            <option value="Autre">Autre</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Année</label>
+                        <input type="number" name="annee" class="w-full px-3 py-2 border border-gray-300 rounded-md" min="1000" max="{{ date('Y') + 1 }}">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Description</label>
+                        <textarea name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button"
+                                onclick="document.getElementById('addBookModal').classList.add('hidden')"
+                                class="px-4 py-2 bg-gray-500 text-white rounded-md">
+                            Annuler
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2 bg-blue-500 text-white rounded-md">
+                            Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals Edition (un pour chaque livre) -->
+    @foreach($books as $book)
+        @can('update', $book)
+            <div id="editBookModal{{ $book->id }}" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                    <div class="mt-3">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">✏️ Modifier le livre</h3>
+                        <form action="{{ route('books.update', $book) }}" method="POST">
+                            @csrf
+                            @method('PUT')
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Titre *</label>
+                                <input type="text" name="titre" value="{{ $book->titre }}" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Auteur *</label>
+                                <input type="text" name="auteur" value="{{ $book->auteur }}" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Catégorie</label>
+                                <select name="categorie" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                    <option value="">-- Choisir --</option>
+                                    <option value="Roman" {{ $book->categorie == 'Roman' ? 'selected' : '' }}>Roman</option>
+                                    <option value="Science-fiction" {{ $book->categorie == 'Science-fiction' ? 'selected' : '' }}>Science-fiction</option>
+                                    <option value="Fantastique" {{ $book->categorie == 'Fantastique' ? 'selected' : '' }}>Fantastique</option>
+                                    <option value="Policier" {{ $book->categorie == 'Policier' ? 'selected' : '' }}>Policier</option>
+                                    <option value="Thriller" {{ $book->categorie == 'Thriller' ? 'selected' : '' }}>Thriller</option>
+                                    <option value="Biographie" {{ $book->categorie == 'Biographie' ? 'selected' : '' }}>Biographie</option>
+                                    <option value="Histoire" {{ $book->categorie == 'Histoire' ? 'selected' : '' }}>Histoire</option>
+                                    <option value="Philosophie" {{ $book->categorie == 'Philosophie' ? 'selected' : '' }}>Philosophie</option>
+                                    <option value="Poésie" {{ $book->categorie == 'Poésie' ? 'selected' : '' }}>Poésie</option>
+                                    <option value="Théâtre" {{ $book->categorie == 'Théâtre' ? 'selected' : '' }}>Théâtre</option>
+                                    <option value="Autre" {{ $book->categorie == 'Autre' ? 'selected' : '' }}>Autre</option>
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Année</label>
+                                <input type="number" name="annee" value="{{ $book->annee }}" class="w-full px-3 py-2 border border-gray-300 rounded-md" min="1000" max="{{ date('Y') + 1 }}">
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Description</label>
+                                <textarea name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md">{{ $book->description }}</textarea>
+                            </div>
+                            <div class="flex justify-end gap-2">
+                                <button type="button"
+                                        onclick="document.getElementById('editBookModal{{ $book->id }}').classList.add('hidden')"
+                                        class="px-4 py-2 bg-gray-500 text-white rounded-md">
+                                    Annuler
+                                </button>
+                                <button type="submit"
+                                        class="px-4 py-2 bg-amber-500 text-white rounded-md">
+                                    Mettre à jour
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endcan
+    @endforeach
+
+    <script>
+        function openEditModal(id) {
+            document.getElementById('editBookModal' + id).classList.remove('hidden');
+        }
+    </script>
 </x-app-layout>
