@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,6 +14,7 @@ class Book extends Model
         'categorie',
         'annee',
         'description',
+        'user_id',
     ];
 
     /**
@@ -34,6 +34,14 @@ class Book extends Model
     }
 
     /**
+     * Relation avec les statuts de lecture
+     */
+    public function readingStatuses()
+    {
+        return $this->hasMany(ReadingStatus::class);
+    }
+
+    /**
      * Relation many-to-many avec les utilisateurs qui ont mis ce livre en favori
      */
     public function utilisateursFavoris()
@@ -42,10 +50,26 @@ class Book extends Model
     }
 
     /**
+     * Relation avec l'utilisateur qui a ajouté le livre
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
      * Vérifier si le livre est en favori pour un utilisateur donné
      */
     public function isFavoriteFor($userId)
     {
         return $this->favoris()->where('user_id', $userId)->exists();
+    }
+
+    /**
+     * Obtenir le statut de lecture pour un utilisateur donné
+     */
+    public function getReadingStatusFor($userId)
+    {
+        return $this->readingStatuses()->where('user_id', $userId)->first();
     }
 }

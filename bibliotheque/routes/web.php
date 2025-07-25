@@ -3,6 +3,8 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\FavoriController;
 use App\Http\Controllers\CommentaireController;
+use App\Http\Controllers\BookController;
+use App\Http\Controllers\ReadingTrackerController;
 use App\Models\Book;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -31,6 +33,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
+    // Routes CRUD pour les livres
+    Route::resource('books', BookController::class);
+    
     // Routes pour les favoris
     Route::get('/favoris', [FavoriController::class, 'index'])->name('favoris.index');
     Route::post('/favoris', [FavoriController::class, 'store'])->name('favoris.store');
@@ -41,6 +46,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/mes-commentaires', [CommentaireController::class, 'index'])->name('commentaires.index');
     Route::post('/commentaires', [CommentaireController::class, 'store'])->name('commentaires.store');
     Route::delete('/commentaires/{id}', [CommentaireController::class, 'destroy'])->name('commentaires.destroy');
+    
+    // Routes pour le suivi de lecture
+    Route::get('/suivi-lecture', [ReadingTrackerController::class, 'index'])->name('reading-tracker.index');
+    Route::post('/suivi-lecture/add-book', [ReadingTrackerController::class, 'addBook'])->name('reading-tracker.add-book');
+    Route::post('/suivi-lecture/update-status', [ReadingTrackerController::class, 'updateStatus'])->name('reading-tracker.update-status');
+    Route::post('/suivi-lecture/update-progress', [ReadingTrackerController::class, 'updateProgress'])->name('reading-tracker.update-progress');
+    Route::post('/suivi-lecture/remove-book', [ReadingTrackerController::class, 'removeBook'])->name('reading-tracker.remove-book');
+    Route::get('/suivi-lecture/stats', [ReadingTrackerController::class, 'stats'])->name('reading-tracker.stats');
     
     // Route pour voir un livre avec commentaires
     Route::get('/livre/{id}', function($id) {

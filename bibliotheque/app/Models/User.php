@@ -1,43 +1,25 @@
 <?php
-
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -63,10 +45,52 @@ class User extends Authenticatable
     }
 
     /**
+     * Relation avec les livres ajoutés
+     */
+    public function books()
+    {
+        return $this->hasMany(Book::class);
+    }
+
+    /**
+     * Relation avec les statuts de lecture
+     */
+    public function readingStatuses()
+    {
+        return $this->hasMany(ReadingStatus::class);
+    }
+
+    /**
      * Relation many-to-many avec les livres favoris
      */
     public function livresFavoris()
     {
         return $this->belongsToMany(Book::class, 'favoris', 'user_id', 'livre_id');
+    }
+
+    /**
+     * Obtenir les livres par statut de lecture
+     */
+    public function getBooksByReadingStatus($status)
+    {
+        return $this->readingStatuses()
+                   ->where('status', $status)
+                   ->with('book')
+                   ->ordered()
+                   ->get();
+    }
+
+    /**
+     * Statistiques de lecture
+     */
+    public function getReadingStats()
+    {
+        return [
+            'total' => $this->readingStatuses()->count(),
+            'a_lire' => $this->readingStatuses()->byStatus('a_lire')->count(),
+            'en_cours' => $this->readingStatuses()->byStatus('en_cours')->count(),
+            'termine' => $this->readingStatuses()->byStatus('termine')->count(),
+            'abandonne' => $this->readingStatuses()->byStatus('abandonne')->count(),
+        ];
     }
 }
